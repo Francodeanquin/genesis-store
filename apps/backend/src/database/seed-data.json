@@ -1,0 +1,147 @@
+{
+  "users": [
+    {
+      "firstName": "Franco",
+      "lastName": "Deanquin",
+      "email": "admin@genesis.com",
+      "dni": "30111222",
+      "address": "Av. Colón 1234, Córdoba",
+      "phone": "3511234567",
+      "password": "Admin123!",
+      "role": "ADMIN",
+      "hourlyRate": null,
+      "mustChangePassword": false,
+      "isActive": true
+    },
+    {
+      "firstName": "Lucía",
+      "lastName": "Ferreyra",
+      "email": "supervisor@genesis.com",
+      "dni": "31222333",
+      "address": "Bv. San Juan 456, Córdoba",
+      "phone": "3512345678",
+      "password": "Supervisor123!",
+      "role": "SUPERVISOR",
+      "hourlyRate": null,
+      "mustChangePassword": false,
+      "isActive": true
+    },
+    {
+      "firstName": "Mateo",
+      "lastName": "Gómez",
+      "email": "empleado@genesis.com",
+      "dni": "32333444",
+      "address": "Calle Rioja 789, Córdoba",
+      "phone": "3513456789",
+      "password": "Empleado123!",
+      "role": "STAFF",
+      "hourlyRate": 2500.5,
+      "mustChangePassword": false,
+      "isActive": true
+    }
+  ],
+  "customers": [
+    {
+      "firstName": "Camila",
+      "lastName": "Suárez",
+      "dni": "35444555",
+      "phone": "3514567890",
+      "address": "Av. Vélez Sarsfield 100, Córdoba",
+      "email": "camila.suarez@gmail.com",
+      "password": "Cliente123!",
+      "emailVerified": true
+    },
+    {
+      "firstName": "Tomás",
+      "lastName": "Molina",
+      "dni": "36555666",
+      "phone": "3515678901",
+      "address": "Calle Obispo Trejo 250, Córdoba",
+      "email": "tomas.molina@gmail.com",
+      "password": "Cliente123!",
+      "emailVerified": true
+    },
+    {
+      "firstName": "Valentina",
+      "lastName": "Ibáñez",
+      "dni": "37666777",
+      "phone": "3516789012",
+      "address": "Av. Rafael Núñez 800, Córdoba",
+      "email": "valentina.ibanez@gmail.com",
+      "password": "Cliente123!",
+      "emailVerified": true
+    }
+  ],
+  "products": [
+    {
+      "name": "Pantalla iPhone 11 OLED",
+      "category": "Pantallas",
+      "availableStock": 15,
+      "minStock": 5,
+      "basePrice": 45000.0
+    },
+    {
+      "name": "Pantalla Samsung A32",
+      "category": "Pantallas",
+      "availableStock": 8,
+      "minStock": 5,
+      "basePrice": 32000.0
+    },
+    {
+      "name": "Batería iPhone 12",
+      "category": "Baterías",
+      "availableStock": 20,
+      "minStock": 8,
+      "basePrice": 18000.0
+    },
+    {
+      "name": "Batería Samsung A12",
+      "category": "Baterías",
+      "availableStock": 3,
+      "minStock": 5,
+      "basePrice": 12500.0
+    },
+    {
+      "name": "Cargador Tipo C 20W",
+      "category": "Accesorios",
+      "availableStock": 40,
+      "minStock": 10,
+      "basePrice": 8000.0
+    },
+    {
+      "name": "Cable Lightning 1m",
+      "category": "Accesorios",
+      "availableStock": 35,
+      "minStock": 10,
+      "basePrice": 5500.0
+    },
+    {
+      "name": "Auriculares Bluetooth TWS",
+      "category": "Accesorios",
+      "availableStock": 12,
+      "minStock": 6,
+      "basePrice": 22000.0
+    },
+    {
+      "name": "Funda Silicona iPhone 13",
+      "category": "Fundas",
+      "availableStock": 25,
+      "minStock": 10,
+      "basePrice": 6000.0
+    },
+    {
+      "name": "Módulo de carga Motorola G8",
+      "category": "Repuestos",
+      "availableStock": 0,
+      "minStock": 4,
+      "basePrice": 9500.0
+    },
+    {
+      "name": "Cámara trasera iPhone XR",
+      "category": "Repuestos",
+      "availableStock": 6,
+      "minStock": 5,
+      "basePrice": 27500.0
+    }
+  ]
+}

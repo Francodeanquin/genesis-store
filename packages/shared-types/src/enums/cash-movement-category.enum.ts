@@ -1,0 +1,9 @@
+export enum CashMovementCategory {
+  SALE = 'SALE',
+  SUPPLIER = 'SUPPLIER',
+  SUPPLIES = 'SUPPLIES',
+  CLEANING = 'CLEANING',
+  SALARIES = 'SALARIES',
+  SHORTAGE = 'SHORTAGE',
+  SURPLUS = 'SURPLUS',
+}
