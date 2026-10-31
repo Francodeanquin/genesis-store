@@ -1,7 +1,7 @@
 # Tienda Genesis
 
 
-Proyceto realizado para "Tienda Genesis", un comercio dedicado a la venta de repuestos y accesorios para telefonos celulares. El cliente desea tener una aplicacion web para llevar a cabo la gestion del negocio a nivel local y otra que sera un E-commerce en el cual los clientes pueden interactuar y realizar pedidos.
+Proyecto realizado para "Tienda Genesis", un comercio dedicado a la venta de repuestos y accesorios para telefonos celulares. El cliente desea tener una aplicacion web para llevar a cabo la gestion del negocio a nivel local y otra que sera un E-commerce en el cual los clientes pueden interactuar y realizar pedidos.
 
 
 
