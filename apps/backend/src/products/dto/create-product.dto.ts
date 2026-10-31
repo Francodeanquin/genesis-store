@@ -17,5 +17,9 @@ export class CreateProductDto {
 
   @IsNumber()
   @Min(0)
+  costPrice!: number;
+
+  @IsNumber()
+  @Min(0)
   basePrice!: number;
 }

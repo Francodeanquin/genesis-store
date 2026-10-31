@@ -1,0 +1,4 @@
+export enum NotificationType {
+  ORDER_EXPIRED = 'ORDER_EXPIRED',
+  INACTIVE_CUSTOMER = 'INACTIVE_CUSTOMER',
+}

@@ -5,9 +5,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { OrderController } from './order.controller';
 import { OrderService } from './order.service';
 import { SalesModule } from '../sales/sales.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [SalesModule, TypeOrmModule.forFeature([Order, OrderItem])],
+  imports: [
+    SalesModule,
+    TypeOrmModule.forFeature([Order, OrderItem]),
+    NotificationsModule,
+  ],
   controllers: [OrderController],
   providers: [OrderService],
   exports: [OrderService],

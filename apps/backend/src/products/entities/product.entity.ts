@@ -13,6 +13,9 @@ export class Product {
   @Column()
   name!: string;
 
+  @Column({ type: 'decimal'  })
+  costPrice!: number;
+
   @Column()
   category!: string;
 

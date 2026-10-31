@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -20,12 +21,15 @@ import {
   PaymentStatus,
 } from '@genesis/shared-types';
 import { User } from '../users/entities/user.entity';
+import { Customer } from '../customers/entities/customer.entity';
 
 const SALES_HISTORY_BATCH_DAYS = 30;
 type PersistSaleProps = {
   paymentMethod: PaymentMethod;
   customerId?: User['id'] | null;
   installments: number;
+  amountPaid?: number;
+  paymentStatus?: PaymentStatus;
   generalDiscountPercentage: number | null;
   items: Pick<SaleItem, 'productId' | 'quantity' | 'unitPrice'>[];
   userId: User['id'];
@@ -100,6 +104,15 @@ export class SalesService {
 
   async create(dto: CreateSaleDto, userId: string): Promise<Sale> {
     const paymentMethod = dto.paymentMethod ?? PaymentMethod.CASH;
+    const paymentStatus = dto.paymentStatus ?? PaymentStatus.PAID;
+
+    if (
+      (paymentStatus === PaymentStatus.PARTIAL ||
+        paymentStatus === PaymentStatus.PENDING) &&
+      !dto.customerId
+    ) {
+      throw new BadRequestException('A customer is required for credit sales');
+    }
 
     if (paymentMethod === PaymentMethod.CASH) {
       await this.checkOpenedCashRegister();
@@ -133,6 +146,8 @@ export class SalesService {
         userId,
         installments: dto.installments ?? 1,
         paymentMethod,
+        paymentStatus,
+        amountPaid: dto.amountPaid ?? 0,
         generalDiscountPercentage: dto.generalDiscountPercentage ?? null,
         items: dto.items,
       });
@@ -161,7 +176,7 @@ export class SalesService {
   async hasSalesForUser(userId: string): Promise<boolean> {
     return this.salesRepository.exists({ where: { userId } });
   }
-  
+
   private async persistSale(
     manager: EntityManager,
     data: PersistSaleProps,
@@ -169,6 +184,7 @@ export class SalesService {
     const saleRepository = manager.getRepository(Sale);
     const saleItemRepository = manager.getRepository(SaleItem);
     const paymentMethod = data.paymentMethod;
+    const paymentStatus = data.paymentStatus ?? PaymentStatus.PAID;
     const userId = data.userId;
 
     const subtotal = data.items.reduce(
@@ -192,17 +208,43 @@ export class SalesService {
 
     const total = afterDiscount + installmentSurcharge;
 
+    let amountPaid: number;
+    if (paymentStatus === PaymentStatus.PAID) {
+      amountPaid = total;
+    } else if (paymentStatus === PaymentStatus.PENDING) {
+      amountPaid = 0;
+    } else {
+      amountPaid = data.amountPaid ?? 0;
+      if (amountPaid <= 0 || amountPaid >= total) {
+        throw new BadRequestException(
+          'amountPaid must be greater than 0 and less than the total for a partial sale',
+        );
+      }
+    }
+
+    const debt = total - amountPaid;
+
     const sale = saleRepository.create({
       customerId: data.customerId ?? null,
       userId,
       paymentMethod,
-      paymentStatus: PaymentStatus.PAID,
+      paymentStatus: paymentStatus,
+      amountPaid,
       generalDiscountPercentage: data.generalDiscountPercentage ?? null,
       installments,
       installmentSurcharge,
       total,
     });
     await saleRepository.save(sale);
+
+    if (debt > 0 && data.customerId) {
+      const customerRepository = manager.getRepository(Customer);
+      await customerRepository.increment(
+        { id: data.customerId },
+        'balance',
+        debt,
+      );
+    }
 
     const saleItems = data.items.map((item) =>
       saleItemRepository.create({
@@ -220,7 +262,7 @@ export class SalesService {
           type: CashMovementType.INCOME,
           category: CashMovementCategory.SALE,
           paymentMethod,
-          amount: total,
+          amount: amountPaid,
           saleId: sale.id,
         },
         manager,

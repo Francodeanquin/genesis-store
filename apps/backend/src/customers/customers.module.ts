@@ -7,6 +7,7 @@ import { CustomersService } from './customers.service';
 import { OrderModule } from '../order/order.module';
 import { SalesModule } from '../sales/sales.module';
 import { EmailModule } from '../common/email/email.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { EmailModule } from '../common/email/email.module';
     SalesModule,
     OrderModule,
     EmailModule,
+    NotificationsModule,
   ],
   controllers: [CustomersController],
   providers: [CustomersService],

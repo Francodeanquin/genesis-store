@@ -15,6 +15,19 @@ import { CashRegisterModule } from './cash-register/cash-register.module';
 import { SalesModule } from './sales/sales.module';
 import { OrderModule } from './order/order.module';
 import { AttendanceRecordsModule } from './attendance-records/attendance-records.module';
+import { SuppliersModule } from './suppliers/suppliers.module';
+import { ExpensesModule } from './expenses/expenses.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { MustChangePasswordGuard } from './auth/guards/must-change-password.guard';
+import { RolesGuard } from './auth/guards/roles.guard';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { PriceListsModule } from './price-lists/price-lists.module';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { validate } from './config/env.validation';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
@@ -27,10 +40,17 @@ import { AttendanceRecordsModule } from './attendance-records/attendance-records
     OrderModule,
     SalesModule,
     AttendanceRecordsModule,
+    DashboardModule,
+    NotificationsModule,
+    SuppliersModule,
+    PriceListsModule,
+    ExpensesModule,
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
+      validate,
     }),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configservice: ConfigService) => ({
@@ -45,6 +65,14 @@ import { AttendanceRecordsModule } from './attendance-records/attendance-records
         namingStrategy: new SnakeNamingStrategy(),
       }),
     }),
+  ],
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: MustChangePasswordGuard },
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
+    { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
   ],
 })
 export class AppModule implements OnModuleInit {

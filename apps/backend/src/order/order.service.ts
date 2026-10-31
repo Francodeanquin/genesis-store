@@ -11,9 +11,14 @@ import { OrderItem } from './entities/order-item.entity';
 import { Product } from '../products/entities/product.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { FindOrdersDto } from './dto/Find-orders.dto';
-import { OrderStatus, PaymentMethod } from '@genesis/shared-types';
+import {
+  NotificationType,
+  OrderStatus,
+  PaymentMethod,
+} from '@genesis/shared-types';
 import { ConfirmOrderDto } from './dto/confirm-order.dto';
 import { SalesService } from '../sales/sales.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const RESERVATION_DURATION_MS = 24 * 60 * 60 * 1000;
 
@@ -25,14 +30,10 @@ export class OrderService {
     @InjectRepository(OrderItem)
     private readonly orderItemRepository: Repository<OrderItem>,
     private readonly salesService: SalesService,
+    private readonly notificationsService: NotificationsService,
     private readonly dataSource: DataSource,
   ) {}
 
-  /**
-   * BR-02: crea el pedido online. A diferencia de una Sale del local, acá
-   * SÍ se descuenta el stock al crear (es una reserva real, no una venta
-   * consumada), y el pedido arranca en PENDING con 24hs para ser retirado.
-   */
   async create(dto: CreateOrderDto, customerId: string): Promise<Order> {
     return this.dataSource.transaction(async (manager) => {
       const productRepository = manager.getRepository(Product);
@@ -259,6 +260,10 @@ export class OrderService {
 
     for (const order of expiredOrders) {
       await this.cancelOrderAndRestoreStock(order.id);
+      await this.notificationsService.create({
+        type: NotificationType.ORDER_EXPIRED,
+        referenceId: order.id,
+      });
     }
   }
 }

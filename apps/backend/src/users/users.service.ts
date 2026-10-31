@@ -11,8 +11,9 @@ import { User } from './entities/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRole } from '@genesis/shared-types';
 import { SalesService } from '../sales/sales.service';
-import { OrderService } from '../order/order.service';
 import { CashRegisterService } from '../cash-register/cash-register.service';
+import { randomInt } from 'crypto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Injectable()
 export class UsersService {
@@ -89,8 +90,31 @@ export class UsersService {
   async findOneWithRefreshHash(id: string): Promise<User | null> {
     return this.usersRepository.findOne({
       where: { id },
-      select: { id: true, email: true, hashedRt: true },
+      select: {
+        id: true,
+        email: true,
+        hashedRt: true,
+        mustChangePassword: true,
+      },
     });
+  }
+
+  async resetUserPassword(
+    id: string,
+    reqRole: UserRole,
+  ): Promise<{ temporaryPassword: string }> {
+    const user = await this.findOne(id);
+
+    if (reqRole === UserRole.SUPERVISOR) {
+      if (user.role !== UserRole.STAFF) throw new ForbiddenException();
+    }
+    const passwordTemp = this.generateTemporaryPassword();
+    const passwordHash = await this.passwordService.hash(passwordTemp);
+    await this.usersRepository.update(id, {
+      passwordHash: passwordHash,
+      mustChangePassword: true,
+    });
+    return { temporaryPassword: passwordTemp };
   }
 
   async updateRefreshTokenHash(
@@ -98,5 +122,64 @@ export class UsersService {
     hash: string | null,
   ): Promise<void> {
     await this.usersRepository.update(userId, { hashedRt: hash });
+  }
+
+  async changePassword(
+    id: string,
+    dto: ChangePasswordDto,
+  ): Promise<{ message: string }> {
+    const user = await this.usersRepository.findOne({
+      where: { id },
+      select: { id: true, passwordHash: true, mustChangePassword: true },
+    });
+    if (!user) throw new NotFoundException(`User with id ${id} not found`);
+
+    const isValidPassword = await this.passwordService.compare(
+      dto.currentPassword,
+      user.passwordHash,
+    );
+
+    if (!isValidPassword) throw new ForbiddenException();
+
+    const newPassWordHash = await this.passwordService.hash(dto.newPassword);
+    await this.usersRepository.update(user.id, {
+      passwordHash: newPassWordHash,
+      mustChangePassword: false,
+    });
+
+    return {
+      message: 'Password changed successfully',
+    };
+  }
+
+  private generateTemporaryPassword(length = 12): string {
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const digits = '0123456789';
+    const symbols = '!@#$%^&*';
+    const allChars = lowercase + uppercase + digits + symbols;
+
+    const randomChar = (pool: string) => pool[randomInt(pool.length)];
+
+    const passwordChars = [
+      randomChar(lowercase),
+      randomChar(uppercase),
+      randomChar(digits),
+      randomChar(symbols),
+    ];
+
+    for (let i = passwordChars.length; i < length; i++) {
+      passwordChars.push(randomChar(allChars));
+    }
+
+    for (let i = passwordChars.length - 1; i > 0; i--) {
+      const j = randomInt(i + 1);
+      [passwordChars[i], passwordChars[j]] = [
+        passwordChars[j],
+        passwordChars[i],
+      ];
+    }
+
+    return passwordChars.join('');
   }
 }

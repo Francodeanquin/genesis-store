@@ -10,7 +10,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
-import { PaymentMethod } from '@genesis/shared-types';
+import { PaymentMethod, PaymentStatus } from '@genesis/shared-types';
 
 class SaleItemInputDto {
   @IsUUID()
@@ -42,6 +42,18 @@ export class CreateSaleDto {
   )
   @IsEnum(PaymentMethod)
   paymentMethod?: PaymentMethod;
+
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.toUpperCase() : value,
+  )
+  @IsEnum(PaymentStatus)
+  paymentStatus?: PaymentStatus;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  amountPaid?: number;
 
   @IsOptional()
   @IsInt()

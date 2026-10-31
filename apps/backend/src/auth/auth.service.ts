@@ -7,6 +7,7 @@ import { CustomersService } from '../customers/customers.service';
 import { UserRole } from '@genesis/shared-types';
 import { ValidationResponse } from './interfaces/validation-response';
 import { AttendanceRecordsService } from '../attendance-records/attendance-records.service';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -23,19 +24,20 @@ export class AuthService {
     email: string,
     role: UserRole,
     type: 'user' | 'customer',
+    mustChangePassword: boolean,
   ) {
     const [at, rt] = await Promise.all([
       this.jwtService.signAsync(
-        { sub: userId, email, type, role },
+        { sub: userId, email, type, role, mustChangePassword },
         {
-          secret: process.env.JWT_SECRET || 'at-secret',
+          secret: process.env.JWT_SECRET,
           expiresIn: '15m',
         },
       ),
       this.jwtService.signAsync(
-        { sub: userId, email, type, role },
+        { sub: userId, email, type, role, mustChangePassword },
         {
-          secret: process.env.JWT_REFRESH_SECRET || 'rt-secret',
+          secret: process.env.JWT_REFRESH_SECRET,
           expiresIn: '7d',
         },
       ),
@@ -62,6 +64,7 @@ export class AuthService {
         email: user.email,
         role: user.role,
         type: 'user' as const,
+        mustChangePassword: user.mustChangePassword,
       };
     }
 
@@ -79,6 +82,7 @@ export class AuthService {
         email: customer.email,
         role: UserRole.CUSTOMER,
         type: 'customer' as const,
+        mustChangePassword: false,
       };
     }
     return null;
@@ -103,12 +107,14 @@ export class AuthService {
     email: string;
     role: UserRole;
     type: 'user' | 'customer';
+    mustChangePassword: boolean;
   }) {
     const tokens = await this.getTokens(
       account.id,
       account.email,
       account.role,
       account.type,
+      account.mustChangePassword,
     );
     await this.updateRefreshToken(
       account.id,
@@ -147,7 +153,18 @@ export class AuthService {
     const rtMatches = await this.passwordService.compare(rt, account.hashedRt);
     if (!rtMatches) throw new ForbiddenException('Access Denied');
 
-    const tokens = await this.getTokens(account.id, account.email, role, type);
+    const mustChangePassword =
+      type === 'user' && 'mustChangePassword' in account
+        ? account.mustChangePassword
+        : false;
+
+    const tokens = await this.getTokens(
+      account.id,
+      account.email,
+      role,
+      type,
+      mustChangePassword,
+    );
     await this.updateRefreshToken(account.id, type, tokens.refresh_token);
     return tokens;
   }
@@ -163,5 +180,13 @@ export class AuthService {
     } else {
       await this.customersService.updateRefreshTokenHash(userId, hash);
     }
+  }
+  g;
+  async forgotPassword(email: string): Promise<void> {
+    await this.customersService.forgotPassword(email);
+  }
+
+  async resetPassword(dto: ResetPasswordDto): Promise<void> {
+    await this.customersService.resetPassword(dto);
   }
 }

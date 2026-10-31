@@ -15,6 +15,10 @@ import { SalesService } from '../sales/sales.service';
 import { OrderService } from '../order/order.service';
 import { EmailService } from '../common/email/email.service';
 import { ConfigService } from '@nestjs/config';
+import { ResetPasswordDto } from '../auth/dto/reset-password.dto';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '@genesis/shared-types';
 
 @Injectable()
 export class CustomersService {
@@ -27,6 +31,7 @@ export class CustomersService {
     private readonly salesService: SalesService,
     private readonly orderService: OrderService,
     private readonly emailService: EmailService,
+    private readonly notificationService: NotificationsService,
     private configService: ConfigService,
   ) {}
 
@@ -73,8 +78,15 @@ export class CustomersService {
     return customer;
   }
 
-  async findAll(): Promise<Customer[]> {
-    return this.customersRepository.find({ where: { isActive: true } });
+  async findAll(hasDebt?: boolean): Promise<Customer[]> {
+    const qb = this.customersRepository
+      .createQueryBuilder('customer')
+      .where('customer.isActive = :isActive', { isActive: true });
+
+    if (hasDebt) {
+      qb.andWhere('customer.balance > 0');
+    }
+    return qb.getMany();
   }
 
   async findByEmail(email: string): Promise<Customer | null> {
@@ -174,5 +186,121 @@ export class CustomersService {
       where: { id },
       select: { id: true, email: true, hashedRt: true },
     });
+  }
+
+  async forgotPassword(email: string): Promise<void> {
+    const customer = await this.findByEmail(email);
+    if (!customer) return;
+
+    const token = randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000);
+
+    await this.customersRepository.update(customer.id, {
+      resetToken: token,
+      resetTokenExpiresAt: expiresAt,
+    });
+
+    try {
+      await this.emailService.sendEmail({
+        to: email,
+        subject: 'Reset your password',
+        html: `<a href="${this.configService.get(
+          'ECOMMERCE_URL',
+        )}/reset-password?token=${token}">Reset Password</a>`,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Error sending verification email to a ${email}`,
+        error,
+      );
+    }
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const customer = await this.customersRepository.findOne({
+      where: { resetToken: dto.token },
+    });
+
+    if (!customer) throw new NotFoundException('Invalid token');
+
+    if (customer.resetTokenExpiresAt! < new Date(Date.now())) {
+      throw new BadRequestException('The token is expired');
+    }
+
+    const newPassword = await this.passwordService.hash(dto.newPassword);
+    await this.customersRepository.update(customer.id, {
+      passwordHash: newPassword,
+      resetToken: null,
+      resetTokenExpiresAt: null,
+    });
+  }
+
+  @Cron(CronExpression.EVERY_12_HOURS)
+  async createNotifications() {
+    const qb = this.customersRepository
+      .createQueryBuilder('customer')
+      .leftJoin('sales', 'sale', 'sale.customerId = customer.id')
+      .select('customer.id', 'customerId')
+      .addSelect('MAX(sale.createdAt)', 'lastSaleDate')
+      .addSelect('customer.createdAt', 'customerCreatedAt')
+      .where('customer.isActive = :isActive', { isActive: true })
+      .groupBy('customer.id');
+
+    const rows = await qb.getRawMany<{
+      customerId: string;
+      lastSaleDate: Date | null;
+      customerCreatedAt: Date;
+    }>();
+    const INACTIVITY_THRESHOLDS = [20, 40, 60, 90, 180];
+
+    function getInactivityThreshold(
+      daysSinceLastActivity: number,
+    ): number | null {
+      const matched = [...INACTIVITY_THRESHOLDS]
+        .reverse()
+        .find((threshold) => daysSinceLastActivity >= threshold);
+
+      return matched ?? null;
+    }
+
+    const MS_PER_DAY = 24 * 60 * 60 * 1000;
+    const now = new Date();
+    const candidates = rows
+      .map((row) => {
+        const baseDate = row.lastSaleDate ?? row.customerCreatedAt;
+        const daysSinceLastActivity = Math.floor(
+          (now.getTime() - baseDate.getTime()) / MS_PER_DAY,
+        );
+        return {
+          customerId: row.customerId,
+          baseDate,
+          threshold: getInactivityThreshold(daysSinceLastActivity),
+        };
+      })
+      .filter((c) => c.threshold !== null);
+
+    if (candidates.length === 0) return;
+
+    const existing = await this.notificationService.findByTypeAndReferenceIds(
+      NotificationType.INACTIVE_CUSTOMER,
+      candidates.map((c) => c.customerId),
+    );
+
+    for (const candidate of candidates) {
+      const alreadyNotified = existing.some(
+        (n) =>
+          n.referenceId === candidate.customerId &&
+          n.daysInactive === candidate.threshold &&
+          n.createdAt > candidate.baseDate,
+      );
+
+      if (alreadyNotified) continue;
+
+      await this.notificationService.create({
+        type: NotificationType.INACTIVE_CUSTOMER,
+        referenceId: candidate.customerId,
+        daysInactive: candidate.threshold!,
+      });
+    }
   }
 }

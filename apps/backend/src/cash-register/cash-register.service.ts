@@ -168,7 +168,6 @@ export class CashRegisterService {
     return cashMovements;
   }
 
-
   async registerCashMovement(
     data: {
       type: CashMovementType;
@@ -176,6 +175,7 @@ export class CashRegisterService {
       paymentMethod: PaymentMethod;
       amount: number;
       saleId?: string | null;
+      expenseId?: string | null;
     },
     manager?: EntityManager,
   ): Promise<CashMovement> {

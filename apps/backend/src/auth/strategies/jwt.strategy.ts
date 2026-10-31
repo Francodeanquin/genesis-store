@@ -21,12 +21,14 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     email: string;
     role: UserRole;
     type: 'user' | 'customer';
+    mustChangePassword?: boolean;
   }) {
     return {
       id: payload.sub,
       email: payload.email,
       role: payload.role,
       type: payload.type,
+      mustChangePassword: payload.mustChangePassword,
     };
   }
 }

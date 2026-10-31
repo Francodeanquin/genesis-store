@@ -53,6 +53,9 @@ export class Customer {
   @Exclude()
   hashedRt!: string | null;
 
+  @Column({ type: 'decimal', default: 0 })
+  balance!: number;
+
   @Column({ type: 'varchar', nullable: true })
   pendingEmail!: string | null;
 

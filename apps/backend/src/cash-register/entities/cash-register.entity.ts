@@ -49,4 +49,6 @@ export class CashRegister {
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt!: Date;
+
+  
 }

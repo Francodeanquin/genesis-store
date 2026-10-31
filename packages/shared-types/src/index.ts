@@ -5,3 +5,5 @@ export * from './enums/cash-movement-category.enum';
 export * from './enums/payment-method.enum';
 export * from './enums/payment-status.enum';
 export * from './enums/order-status.enum';
+export * from './enums/expense-category.enum';
+export * from './enums/notification-types.enum';

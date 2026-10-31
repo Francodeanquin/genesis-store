@@ -29,7 +29,6 @@ export class Sale {
   @JoinColumn({ name: 'userId' })
   user!: User;
 
- 
   @Column({ type: 'decimal', nullable: true })
   generalDiscountPercentage!: number | null;
 
@@ -47,6 +46,9 @@ export class Sale {
 
   @Column({ type: 'decimal' })
   total!: number;
+
+  @Column({ type: 'decimal', default: 0 })
+  amountPaid!: number;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt!: Date;

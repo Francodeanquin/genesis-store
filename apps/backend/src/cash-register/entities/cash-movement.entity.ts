@@ -13,6 +13,7 @@ import {
 } from '@genesis/shared-types';
 import { CashRegister } from './cash-register.entity';
 import { Sale } from '../../sales/entities/sale.entity';
+import { Expense } from '../../expenses/entities/expense.entity';
 
 @Entity('cash_movements')
 export class CashMovement {
@@ -44,6 +45,13 @@ export class CashMovement {
 
   @Column({ type: 'decimal' })
   amount!: number;
+
+  @Column({ type: 'uuid', nullable: true })
+  expenseId!: string | null;
+
+  @ManyToOne(() => Expense, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'expenseId' })
+  expense!: Expense | null;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt!: Date;

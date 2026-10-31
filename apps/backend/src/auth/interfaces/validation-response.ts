@@ -5,4 +5,5 @@ export interface ValidationResponse {
   email: string;
   role: UserRole;
   type: 'user' | 'customer';
+  mustChangePassword: boolean;
 }
